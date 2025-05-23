@@ -16,7 +16,7 @@ db = client["kepsten6"]
 users = db["users"]
 
 def send_verification_email(email, token):
-    verify_link = f"http://192.168.229.74:5000/verify-email/{token}"
+    verify_link = f"https://swingpro.onrender.com/verify-email/{token}"
 
     html_content = f"""
     <html>
