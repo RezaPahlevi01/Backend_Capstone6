@@ -20,7 +20,7 @@ def home():
     return "Hello from Flask deployed with Vercel CLI!"
 
 def send_verification_email(email, token):
-    verify_link = f"https://swingpro.onrender.com/verify-email/{token}"
+    verify_link = f"https://swingprobackend.vercel.app/verify-email/{token}"
 
     html_content = f"""
     <html>
