@@ -7,6 +7,7 @@ from email.message import EmailMessage
 import base64
 import uuid
 from datetime import datetime, timedelta
+from flask import render_template
 
 app = Flask(__name__)
 CORS(app)
@@ -57,27 +58,23 @@ def send_verification_email(email, token):
         print("Gagal mengirim email:", e)
 
 
-@app.route('/verify-email/<token>', methods=['GET'])
+@app.route('/verify-email/<token>')
 def verify_email(token):
-    record = db.email_verifications.find_one({'token': token})
-    if not record:
-        return "Token tidak valid atau sudah digunakan.", 400
+    user = users_collection.find_one({"verification_token": token})
 
-    if record['expires_at'] < datetime.utcnow():
-        return "Token sudah kadaluwarsa.", 400
-
-    email = record['email']
-    user = users.find_one({'email': email})
     if not user:
-        return "User tidak ditemukan.", 404
+        return render_template('verification_result.html', success=False)
 
-    if user.get('is_verified'):
-        return "Email sudah diverifikasi sebelumnya."
+    if user.get("is_verified"):
+        return render_template('verification_result.html', success=True)
 
-    users.update_one({'email': email}, {'$set': {'is_verified': True}})
-    db.email_verifications.delete_one({'token': token})  # hapus token setelah verifikasi
+    users_collection.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"is_verified": True}, "$unset": {"verification_token": ""}}
+    )
 
-    return "Email berhasil diverifikasi. Silakan login."
+    return render_template('verification_result.html', success=True)
+
 
 @app.route('/resend-verification', methods=['POST'])
 def resend_verification():
