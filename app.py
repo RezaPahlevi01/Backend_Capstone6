@@ -60,20 +60,41 @@ def send_verification_email(email, token):
 
 @app.route('/verify-email/<token>')
 def verify_email(token):
-    user = users_collection.find_one({"verification_token": token})
+    try:
+        # Cari token di collection email_verifications
+        token_doc = db.email_verifications.find_one({"token": token})
+        if not token_doc:
+            return render_template('verification_result.html', success=False, message="Token tidak ditemukan")
 
-    if not user:
-        return render_template('verification_result.html', success=False)
+        # Cek apakah token sudah expired
+        if token_doc['expires_at'] < datetime.utcnow():
+            return render_template('verification_result.html', success=False, message="Token sudah kedaluwarsa")
 
-    if user.get("is_verified"):
-        return render_template('verification_result.html', success=True)
+        email = token_doc['email']
 
-    users_collection.update_one(
-        {"_id": user["_id"]},
-        {"$set": {"is_verified": True}, "$unset": {"verification_token": ""}}
-    )
+        # Cari user berdasarkan email
+        user = users.find_one({'email': email})
+        if not user:
+            return render_template('verification_result.html', success=False, message="User tidak ditemukan")
 
-    return render_template('verification_result.html', success=True)
+        # Jika sudah terverifikasi, tampilkan pesan sukses
+        if user.get('is_verified', False):
+            return render_template('verification_result.html', success=True, message="Email sudah diverifikasi")
+
+        # Update status user ke verified
+        users.update_one(
+            {'email': email},
+            {'$set': {'is_verified': True}}
+        )
+
+        # Hapus token dari collection agar tidak bisa digunakan lagi
+        db.email_verifications.delete_one({'token': token})
+
+        return render_template('verification_result.html', success=True, message="Email berhasil diverifikasi")
+
+    except Exception as e:
+        print("Error saat verifikasi email:", e)
+        return render_template('verification_result.html', success=False, message="Terjadi kesalahan saat verifikasi")
 
 
 @app.route('/resend-verification', methods=['POST'])
