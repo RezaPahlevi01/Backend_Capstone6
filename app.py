@@ -15,6 +15,10 @@ client = MongoClient("mongodb+srv://akhmadretzasyahpahlevi:HAHAHA3333@cluster0.s
 db = client["kepsten6"]
 users = db["users"]
 
+@app.route('/')
+def home():
+    return "Hello from Flask deployed with Vercel CLI!"
+
 def send_verification_email(email, token):
     verify_link = f"https://swingpro.onrender.com/verify-email/{token}"
 
